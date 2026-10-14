@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inequality Decoder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cap1: '#FF6B6B', cap2: '#4ECDC4', cap3: '#45B7D1',
+                        cap4: '#FDCB6E', cap5: '#6C5CE7', cap6: '#FF8ED4',
+                        cap7: '#1DD1A1', cap8: '#FECA57', cap9: '#FF9FF3',
+                        neonBlue: '#00f3ff', neonGreen: '#39ff14'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- MathJax for rendering equations correctly -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Mono:wght@700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .bg-pattern-light {
+            background-color: #f0f4f8;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .bg-pattern-dark {
+            background-color: #1a202c;
+            background-image: radial-gradient(#4a5568 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .title-anim span {
+            animation: colorChange 4s infinite alternate;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .title-anim span:nth-child(1) { animation-delay: 0.1s; }
+        .title-anim span:nth-child(2) { animation-delay: 0.2s; }
+        .title-anim span:nth-child(3) { animation-delay: 0.3s; }
+        .title-anim span:nth-child(4) { animation-delay: 0.4s; }
+        .title-anim span:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes colorChange {
+            0% { color: #FF6B6B; }
+            25% { color: #4ECDC4; }
+            50% { color: #45B7D1; }
+            75% { color: #6C5CE7; }
+            100% { color: #1DD1A1; }
+        }
+
+        /* 3D Animated Top Bar */
+        @keyframes gradient3D {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .topbar-3d {
+            background: linear-gradient(270deg, #1e3a8a, #312e81, #0f172a, #064e3b, #1e3a8a);
+            background-size: 400% 400%;
+            animation: gradient3D 12s ease infinite;
+            box-shadow: 0 8px 20px -3px rgba(0,0,0,0.4), inset 0 -3px 8px rgba(0,0,0,0.3);
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        /* Checkmarks Animation */
+        .check-icon {
+            transition: all 0.3s ease;
+        }
+        .check-on {
+            color: #4ade80;
+            filter: drop-shadow(0 0 5px rgba(74,222,128,0.8));
+        }
+        .check-off {
+            color: rgba(107, 114, 128, 0.3);
+        }
+
+        .capsule {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .capsule:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .math-text {
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Futuristic Screen Styles */
+        .futuristic-panel {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 2px solid #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 20px rgba(56, 189, 248, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .futuristic-panel::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(56,189,248,0.05) 3px, rgba(56,189,248,0.05) 3px);
+            pointer-events: none;
+        }
+        .futuristic-input {
+            background: #020617;
+            border: 1px solid #0ea5e9;
+            color: #38bdf8;
+            text-shadow: 0 0 8px #38bdf8;
+            box-shadow: inset 0 0 10px rgba(14, 165, 233, 0.5);
+        }
+        .futuristic-input:focus {
+            border-color: #39ff14;
+            color: #39ff14;
+            text-shadow: 0 0 8px #39ff14;
+            box-shadow: inset 0 0 15px rgba(57, 255, 20, 0.5);
+            outline: none;
+        }
+        .futuristic-input:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-pattern-light dark:bg-pattern-dark text-slate-800 dark:text-slate-100 min-h-screen flex flex-col">
+
+    <div id="welcome-screen" class="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
+        <div class="max-w-3xl w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-10 rounded-3xl shadow-2xl text-center border border-gray-200 dark:border-gray-700 relative">
+            <div class="mb-8 flex justify-center space-x-4 opacity-70">
+                <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                <svg class="w-12 h-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+            </div>
+            
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight title-anim" id="main-title">
+                <span>I</span><span>n</span><span>e</span><span>q</span><span>u</span><span>a</span><span>l</span><span>i</span><span>t</span><span>y</span>
+                <br/>
+                <span class="text-3xl md:text-5xl">Decoder</span>
+            </h1>
+            
+            <p class="text-lg md:text-xl mb-10 text-gray-600 dark:text-gray-300 max-w-xl mx-auto" id="welcome-desc">
+                Solve linear inequalities, find the correct representations, and crack the secret code.
+            </p>
+            
+            <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-12 rounded-full text-2xl shadow-lg transform transition hover:scale-105 active:scale-95">
+                <span id="btn-start">Start</span>
+            </button>
+        </div>
+        
+        <!-- Creditos -->
+        <div class="absolute bottom-4 right-4 text-sm font-semibold text-gray-500 dark:text-gray-400 bg-white/70 dark:bg-gray-800/70 px-3 py-1 rounded-lg backdrop-blur-sm">
+            Desing by David Beleño - Math Education - 9° grade
+        </div>
+    </div>
+
+    <div id="activity-screen" class="hidden flex-col h-screen w-full">
+        <!-- Animated 3D Top Bar -->
+        <header class="topbar-3d text-white p-3 flex justify-between items-center z-20">
+            <div class="flex items-center space-x-3">
+                <button onclick="goHome()" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition shadow-sm" title="Inicio">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                </button>
+                <div class="font-mono text-xl font-bold bg-black/40 px-3 py-1 rounded-lg text-neonBlue border border-blue-500/50 shadow-inner" id="timer-display">00:00</div>
+            </div>
+            
+            <!-- Centro: Panel de Jugadores y Botón Elegante -->
+            <div class="flex-1 flex items-center justify-center space-x-6 mx-4 hidden md:flex">
+                <!-- Joven Score -->
+                <div class="flex items-center space-x-2 bg-black/20 p-2 rounded-2xl border border-white/10 shadow-inner">
+                    <span class="text-3xl drop-shadow-lg">👦🏻</span>
+                    <div class="flex space-x-0.5" id="boy-checks">
+                        <svg id="boy-check-0" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="boy-check-1" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="boy-check-2" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="boy-check-3" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="boy-check-4" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                </div>
+                
+                <!-- Botón Iniciar (Reemplaza a la caja) -->
+                <button id="btn-top-iniciar" onclick="restartGame()" class="bg-gradient-to-b from-green-400 to-green-600 hover:from-green-300 hover:to-green-500 text-white font-extrabold py-2 px-8 rounded-full shadow-[0_5px_15px_rgba(34,197,94,0.5)] border border-green-300/50 transform transition hover:scale-105 active:scale-95 text-lg tracking-widest uppercase">
+                    Start
+                </button>
+                
+                <!-- Dama Score -->
+                <div class="flex items-center space-x-2 bg-black/20 p-2 rounded-2xl border border-white/10 shadow-inner">
+                    <div class="flex space-x-0.5" id="girl-checks">
+                        <svg id="girl-check-0" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="girl-check-1" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="girl-check-2" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="girl-check-3" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <svg id="girl-check-4" class="w-5 h-5 check-icon check-off" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <span class="text-3xl drop-shadow-lg">👧🏽</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <!-- Selector de tiempo -->
+                <select id="time-selector" class="bg-black/40 border border-white/20 text-white rounded-lg px-2 py-1.5 font-mono outline-none shadow-inner cursor-pointer hover:bg-black/50 transition">
+                    <option value="30">30 s</option>
+                    <option value="60">1 min</option>
+                    <option value="120">2 min</option>
+                    <option value="180">3 min</option>
+                    <option value="300">5 min</option>
+                </select>
+                
+                <button onclick="toggleLang()" class="px-3 py-1.5 font-bold rounded-lg bg-white/20 hover:bg-white/30 transition shadow-sm border border-white/10">
+                    <span id="lang-btn">ES</span>
+                </button>
+                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition shadow-sm border border-white/10">
+                    <svg class="w-5 h-5 hidden dark:block text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg class="w-5 h-5 block dark:hidden text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+            
+            <!-- Left Panel: MODIFICADO para ocupar 100% de la altura y usar flex-1 -->
+            <div class="w-full md:w-2/3 p-4 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col">
+                <h3 class="text-xl font-bold mb-4 text-center shrink-0" id="lbl-capsules">Find the 3 correct representations</h3>
+                <div id="capsules-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-rows-3 gap-4 flex-1 h-full">
+                    <!-- Capsules injected via JS -->
+                </div>
+            </div>
+
+            <!-- Right Panel: MODIFICADO con flex-1 y espacios flexibles equitativos -->
+            <div class="w-full md:w-1/3 p-6 bg-white dark:bg-gray-800 shadow-l flex flex-col border-l border-gray-200 dark:border-gray-700">
+                <div class="flex-1 flex flex-col gap-6">
+                    
+                    <!-- Caja de Inecuación Estirada -->
+                    <div class="bg-slate-100 dark:bg-slate-700 p-6 rounded-2xl shadow-inner text-center flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-4 shrink-0">
+                            <h3 class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold" id="lbl-problem">Inequality to solve</h3>
+                            <span id="round-display" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full dark:bg-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-700">Round 1 / 5</span>
+                        </div>
+                        <div id="problem-display" class="text-2xl font-bold py-2 flex-1 flex items-center justify-center">
+                            <!-- Problem injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Panel de Entrada y Caras de Estudiantes -->
+                    <div class="flex gap-4 items-stretch flex-1">
+                        <!-- Futuristic Input Panel (Estirado) -->
+                        <div class="futuristic-panel p-6 rounded-2xl text-center flex-1 flex flex-col justify-center">
+                            <h3 class="text-sm font-bold mb-4 text-sky-300 tracking-wider" id="lbl-code">ENTER THE CODE</h3>
+                            <input type="text" id="code-input" maxlength="3" class="w-full text-center text-5xl font-mono uppercase tracking-[0.5em] p-4 rounded-xl futuristic-input transition mb-6" placeholder="***" autocomplete="off">
+                            
+                            <button id="btn-verify" onclick="checkAnswer()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-4 rounded-xl text-xl shadow-[0_0_15px_rgba(14,165,233,0.6)] transition-all transform active:scale-95 border border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span id="text-verify">Decode</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Panel de Avatares Laterales (Mas anchos) -->
+                        <div class="flex flex-col gap-4 justify-center w-24">
+                            <button id="btn-win-boy" onclick="claimWin('boy')" class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-4xl opacity-50 cursor-not-allowed transition-all transform shadow-sm relative overflow-hidden" disabled>
+                                <span class="z-10 relative">👦🏻</span>
+                                <div id="glow-boy" class="absolute inset-0 bg-blue-500/20 opacity-0 transition-opacity"></div>
+                            </button>
+                            <button id="btn-win-girl" onclick="claimWin('girl')" class="flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-4xl opacity-50 cursor-not-allowed transition-all transform shadow-sm relative overflow-hidden" disabled>
+                                <span class="z-10 relative">👧🏽</span>
+                                <div id="glow-girl" class="absolute inset-0 bg-pink-500/20 opacity-0 transition-opacity"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success / Game Over Modal -->
+    <div id="success-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform scale-95 transition-transform duration-300" id="modal-content">
+            <div id="modal-icon-container" class="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg id="modal-icon" class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold mb-2 text-gray-800 dark:text-white" id="lbl-success">Game Over!</h2>
+            <p class="text-gray-600 dark:text-gray-300 mb-8" id="lbl-success-desc">You decoded the inequality correctly.</p>
+            <button onclick="restartGame()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition transform active:scale-95">
+                <span id="btn-next">Play Again</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Time's up Modal -->
+    <div id="timeup-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 p-8 rounded-3xl shadow-[0_0_30px_rgba(239,68,68,0.5)] max-w-sm w-full text-center transform scale-95 transition-transform duration-300" id="timeup-content">
+            <div class="w-20 h-20 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500">
+                <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold mb-2 text-red-600 dark:text-red-400" id="lbl-timeup">Time's up!</h2>
+            <p class="text-gray-700 dark:text-gray-300 mb-8" id="lbl-timeup-desc">The time to solve the inequality has run out.</p>
+            <button onclick="goHome()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition transform active:scale-95">
+                <span id="btn-return">Back to Home</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let timerInterval;
+        let timeRemaining = 0; 
+        let isDark = false;
+        let lang = 'en';
+        let currentAnswers = [];
+        
+        // Game Logic State
+        let currentRound = 1;
+        const maxRounds = 5;
+        let scoreBoy = 0;
+        let scoreGirl = 0;
+        let awaitingWinner = false;
+
+        // Dictionary
+        const i18n = {
+            es: {
+                welcomeDesc: "Resuelve inecuaciones lineales, encuentra las representaciones correctas y descifra el código secreto.",
+                start: "Iniciar", langBtn: "EN", capsules: "Encuentra las 3 representaciones correctas",
+                problem: "Inecuación a resolver", code: "INTRODUCE EL CÓDIGO",
+                verify: "Decodificar", selectWinner: "¡Elige Ganador!", success: "¡Juego Terminado!", 
+                next: "Jugar de Nuevo", timeup: "¡Tiempo Agotado!", timeupDesc: "El tiempo para resolver la inecuación ha terminado.",
+                return: "Volver al Inicio", round: "Ronda"
+            },
+            en: {
+                welcomeDesc: "Solve linear inequalities, find the correct representations, and crack the secret code.",
+                start: "Start", langBtn: "ES", capsules: "Find the 3 correct representations",
+                problem: "Inequality to solve", code: "ENTER THE CODE",
+                verify: "Decode", selectWinner: "Choose Winner!", success: "Game Over!", 
+                next: "Play Again", timeup: "Time's up!", timeupDesc: "The time to solve the inequality has run out.",
+                return: "Back to Home", round: "Round"
+            }
+        };
+
+        // Repertorio de problemas
+        const problems = [
+            { eq: "$$-3 < 2x - 1 \\leq 5$$", ineq: "$$-1 < x \\leq 3$$", interval: "$$(-1, 3]$$", nl: { start: -1, startClosed: false, end: 3, endClosed: true } },
+            { eq: "$$4 \\leq 3x + 1 < 10$$", ineq: "$$1 \\leq x < 3$$", interval: "$$[1, 3)$$", nl: { start: 1, startClosed: true, end: 3, endClosed: false } },
+            { eq: "$$2x > 4 \\quad \\text{y} \\quad x - 1 \\leq 5$$", ineq: "$$2 < x \\leq 6$$", interval: "$$(2, 6]$$", nl: { start: 2, startClosed: false, end: 6, endClosed: true } },
+            { eq: "$$x + 3 \\geq 2 \\quad \\text{y} \\quad 2x < 8$$", ineq: "$$-1 \\leq x < 4$$", interval: "$$[-1, 4)$$", nl: { start: -1, startClosed: true, end: 4, endClosed: false } },
+            { eq: "$$x - 2 < 1 \\quad \\text{o} \\quad x + 1 > 5$$", ineq: "$$x < 3 \\quad \\text{o} \\quad x > 4$$", interval: "$$(-\\infty, 3) \\cup (4, \\infty)$$", nl: { isOr: true, end1: 3, closed1: false, start2: 4, closed2: false } },
+            { eq: "$$3x \\leq -6 \\quad \\text{o} \\quad x - 2 \\geq 3$$", ineq: "$$x \\leq -2 \\quad \\text{o} \\quad x \\geq 5$$", interval: "$$(-\\infty, -2] \\cup [5, \\infty)$$", nl: { isOr: true, end1: -2, closed1: true, start2: 5, closed2: true } },
+            { eq: "$$-2 \\leq x < 5$$", ineq: "$$-2 \\leq x < 5$$", interval: "$$[-2, 5)$$", nl: { start: -2, startClosed: true, end: 5, endClosed: false } },
+            { eq: "$$-4 < x + 1 \\leq 2$$", ineq: "$$-5 < x \\leq 1$$", interval: "$$(-5, 1]$$", nl: { start: -5, startClosed: false, end: 1, endClosed: true } },
+            { eq: "$$2 \\leq 2x \\leq 8$$", ineq: "$$1 \\leq x \\leq 4$$", interval: "$$[1, 4]$$", nl: { start: 1, startClosed: true, end: 4, endClosed: true } },
+            { eq: "$$3x - 1 > 2 \\quad \\text{y} \\quad 2x + 1 < 11$$", ineq: "$$1 < x < 5$$", interval: "$$(1, 5)$$", nl: { start: 1, startClosed: false, end: 5, endClosed: false } },
+            { eq: "$$-x + 3 \\geq 1 \\quad \\text{y} \\quad x > -1$$", ineq: "$$-1 < x \\leq 2$$", interval: "$$(-1, 2]$$", nl: { start: -1, startClosed: false, end: 2, endClosed: true } },
+            { eq: "$$x + 2 < 0 \\quad \\text{o} \\quad x - 1 > 2$$", ineq: "$$x < -2 \\quad \\text{o} \\quad x > 3$$", interval: "$$(-\\infty, -2) \\cup (3, \\infty)$$", nl: { isOr: true, end1: -2, closed1: false, start2: 3, closed2: false } },
+            { eq: "$$2x \\leq 4 \\quad \\text{o} \\quad 3x \\geq 15$$", ineq: "$$x \\leq 2 \\quad \\text{o} \\quad x \\geq 5$$", interval: "$$(-\\infty, 2] \\cup [5, \\infty)$$", nl: { isOr: true, end1: 2, closed1: true, start2: 5, closed2: true } },
+            { eq: "$$\\frac{x}{2} < -1 \\quad \\text{o} \\quad \\frac{x}{3} > 1$$", ineq: "$$x < -2 \\quad \\text{o} \\quad x > 3$$", interval: "$$(-\\infty, -2) \\cup (3, \\infty)$$", nl: { isOr: true, end1: -2, closed1: false, start2: 3, closed2: false } },
+            { eq: "$$4x + 1 \\leq -3 \\quad \\text{o} \\quad 2x - 3 \\geq 5$$", ineq: "$$x \\leq -1 \\quad \\text{o} \\quad x \\geq 4$$", interval: "$$(-\\infty, -1] \\cup [4, \\infty)$$", nl: { isOr: true, end1: -1, closed1: true, start2: 4, closed2: true } },
+            { eq: "$$5 - x > 6 \\quad \\text{o} \\quad x + 4 \\geq 7$$", ineq: "$$x < -1 \\quad \\text{o} \\quad x \\geq 3$$", interval: "$$(-\\infty, -1) \\cup [3, \\infty)$$", nl: { isOr: true, end1: -1, closed1: false, start2: 3, closed2: true } }
+        ];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playErrorSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+            
+            const input = document.getElementById('code-input');
+            input.classList.add('animate-[pulse_0.1s_ease-in-out_4]', 'border-red-500', 'text-red-500');
+            setTimeout(() => {
+                input.classList.remove('animate-[pulse_0.1s_ease-in-out_4]', 'border-red-500', 'text-red-500');
+                input.value = '';
+                input.focus();
+            }, 400);
+        }
+
+        function toggleTheme() {
+            isDark = !isDark;
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function toggleLang() {
+            lang = lang === 'es' ? 'en' : 'es';
+            document.getElementById('lang-btn').innerText = i18n[lang].langBtn;
+            
+            document.getElementById('welcome-desc').innerText = i18n[lang].welcomeDesc;
+            document.getElementById('btn-start').innerText = i18n[lang].start;
+            document.getElementById('btn-top-iniciar').innerText = i18n[lang].start;
+            document.getElementById('lbl-capsules').innerText = i18n[lang].capsules;
+            document.getElementById('lbl-problem').innerText = i18n[lang].problem;
+            document.getElementById('lbl-code').innerText = i18n[lang].code;
+            
+            if(!awaitingWinner) {
+                document.getElementById('text-verify').innerText = i18n[lang].verify;
+            } else {
+                document.getElementById('text-verify').innerText = i18n[lang].selectWinner;
+            }
+            
+            document.getElementById('lbl-success').innerText = i18n[lang].success;
+            document.getElementById('btn-next').innerText = i18n[lang].next;
+            document.getElementById('lbl-timeup').innerText = i18n[lang].timeup;
+            document.getElementById('lbl-timeup-desc').innerText = i18n[lang].timeupDesc;
+            document.getElementById('btn-return').innerText = i18n[lang].return;
+            
+            updateRoundDisplay();
+            
+            document.getElementById('main-title').innerHTML = lang === 'es' ? 
+                `<span>D</span><span>e</span><span>c</span><span>o</span><span>d</span><span>i</span><span>f</span><span>i</span><span>c</span><span>a</span><span>d</span><span>o</span><span>r</span><br/><span class="text-3xl md:text-5xl">de Inecuaciones</span>` : 
+                `<span>I</span><span>n</span><span>e</span><span>q</span><span>u</span><span>a</span><span>l</span><span>i</span><span>t</span><span>y</span><br/><span class="text-3xl md:text-5xl">Decoder</span>`;
+            
+            nextProblem(true);
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function startTimer(duration) {
+            timeRemaining = duration;
+            document.getElementById('timer-display').innerText = formatTime(timeRemaining);
+            document.getElementById('timer-display').classList.remove('text-red-500', 'animate-pulse');
+            
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(awaitingWinner) return; 
+
+                timeRemaining--;
+                const display = document.getElementById('timer-display');
+                display.innerText = formatTime(timeRemaining);
+                
+                if(timeRemaining <= 10) {
+                    display.classList.add('text-red-500', 'animate-pulse');
+                }
+
+                if(timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    showTimeUp();
+                }
+            }, 1000);
+        }
+        
+        function showTimeUp() {
+            const modal = document.getElementById('timeup-modal');
+            modal.classList.remove('hidden');
+            document.getElementById('timeup-content').classList.remove('scale-95');
+            document.getElementById('timeup-content').classList.add('scale-100');
+        }
+
+        function startGame() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('activity-screen').classList.remove('hidden');
+            document.getElementById('activity-screen').classList.add('flex');
+            restartGame();
+        }
+
+        function restartGame() {
+            currentRound = 1;
+            scoreBoy = 0;
+            scoreGirl = 0;
+            awaitingWinner = false;
+            
+            updateChecks();
+            updateRoundDisplay();
+            disableFaces();
+            resetVerifyButton();
+            
+            const selectedTime = parseInt(document.getElementById('time-selector').value, 10);
+            startTimer(selectedTime);
+            nextProblem(false);
+            
+            document.getElementById('success-modal').classList.add('hidden');
+        }
+
+        function goHome() {
+            if(timerInterval) clearInterval(timerInterval);
+            document.getElementById('activity-screen').classList.add('hidden');
+            document.getElementById('activity-screen').classList.remove('flex');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            document.getElementById('timeup-modal').classList.add('hidden');
+            document.getElementById('success-modal').classList.add('hidden');
+        }
+
+        function createNumberLineSVG(nlData) {
+            let svg = `<svg viewBox="0 0 200 40" class="w-full h-auto drop-shadow-sm max-h-16"><line x1="10" y1="20" x2="190" y2="20" stroke="currentColor" stroke-width="2" /><polygon points="190,16 190,24 198,20" fill="currentColor" /><polygon points="10,16 10,24 2,20" fill="currentColor" />`;
+            if(nlData.isOr) {
+                svg += `<line x1="80" y1="20" x2="10" y2="20" stroke="#ef4444" stroke-width="4" /><line x1="120" y1="20" x2="190" y2="20" stroke="#ef4444" stroke-width="4" /><circle cx="80" cy="20" r="4" fill="${nlData.closed1 ? '#ef4444' : document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff'}" stroke="#ef4444" stroke-width="2" /><circle cx="120" cy="20" r="4" fill="${nlData.closed2 ? '#ef4444' : document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff'}" stroke="#ef4444" stroke-width="2" /><text x="80" y="35" text-anchor="middle" font-size="10" fill="currentColor" font-family="sans-serif">${nlData.end1}</text><text x="120" y="35" text-anchor="middle" font-size="10" fill="currentColor" font-family="sans-serif">${nlData.start2}</text>`;
+            } else {
+                svg += `<line x1="60" y1="20" x2="140" y2="20" stroke="#3b82f6" stroke-width="4" /><circle cx="60" cy="20" r="4" fill="${nlData.startClosed ? '#3b82f6' : document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff'}" stroke="#3b82f6" stroke-width="2" /><circle cx="140" cy="20" r="4" fill="${nlData.endClosed ? '#3b82f6' : document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff'}" stroke="#3b82f6" stroke-width="2" /><text x="60" y="35" text-anchor="middle" font-size="10" fill="currentColor" font-family="sans-serif">${nlData.start}</text><text x="140" y="35" text-anchor="middle" font-size="10" fill="currentColor" font-family="sans-serif">${nlData.end}</text>`;
+            }
+            svg += `</svg>`;
+            return svg;
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        let currentProblemData = null;
+
+        function nextProblem(keepCurrent = false) {
+            const input = document.getElementById('code-input');
+            input.value = '';
+            
+            if(!keepCurrent || !currentProblemData) {
+                currentProblemData = problems[Math.floor(Math.random() * problems.length)];
+            }
+            
+            const p = currentProblemData;
+            let displayEq = p.eq;
+            if(lang === 'en') {
+                displayEq = displayEq.replace('\\text{o}', '\\text{or}').replace('\\text{y}', '\\text{and}');
+            }
+            
+            document.getElementById('problem-display').innerHTML = displayEq;
+
+            let capData = [];
+            capData.push({ type: 'ineq', content: p.ineq, correct: true });
+            capData.push({ type: 'interval', content: p.interval, correct: true });
+            capData.push({ type: 'nl', content: createNumberLineSVG(p.nl), correct: true });
+
+            let otherProblems = problems.filter(op => op !== p);
+            otherProblems = shuffle(otherProblems).slice(0, 2); 
+            
+            otherProblems.forEach(op => {
+                capData.push({ type: 'ineq', content: op.ineq, correct: false });
+                capData.push({ type: 'interval', content: op.interval, correct: false });
+                capData.push({ type: 'nl', content: createNumberLineSVG(op.nl), correct: false });
+            });
+            
+            capData = capData.slice(0, 9);
+            capData = shuffle(capData);
+
+            const container = document.getElementById('capsules-container');
+            container.innerHTML = '';
+            currentAnswers = [];
+
+            const alphabet = "ABCDEFGHI";
+            const colors = ['bg-cap1', 'bg-cap2', 'bg-cap3', 'bg-cap4', 'bg-cap5', 'bg-cap6', 'bg-cap7', 'bg-cap8', 'bg-cap9'];
+            
+            capData.forEach((data, index) => {
+                const letter = alphabet[index];
+                if(data.correct) currentAnswers.push(letter);
+                
+                const typeLabel = lang === 'es' ? 
+                    (data.type==='ineq'?'Inecuación':(data.type==='interval'?'Intervalo':'Recta')) : 
+                    (data.type==='ineq'?'Inequality':(data.type==='interval'?'Interval':'Line'));
+
+                let contentText = data.content;
+                if(data.type !== 'nl' && lang === 'en') {
+                    contentText = contentText.replace('\\text{o}', '\\text{or}').replace('\\text{y}', '\\text{and}');
+                }
+
+                const div = document.createElement('div');
+                // MODIFICADO: Añadido w-full h-full para llenar la grilla completamente
+                div.className = `capsule relative w-full h-full overflow-hidden rounded-xl shadow-md p-3 flex flex-col items-center justify-center text-gray-900 ${colors[index]} hover:shadow-lg`;
+                div.innerHTML = `
+                    <div class="absolute top-1 left-2 text-[10px] font-bold uppercase tracking-widest opacity-70">${typeLabel}</div>
+                    <div class="absolute -right-2 -bottom-4 text-5xl font-black opacity-10 font-mono">${letter}</div>
+                    <div class="z-10 w-full text-center mt-3 ${data.type === 'nl' ? 'scale-95' : 'text-lg font-bold'}">
+                        ${contentText}
+                    </div>
+                    <div class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/40 flex items-center justify-center font-bold text-sm border border-white/50 backdrop-blur-md shadow-sm">
+                        ${letter}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            if(window.MathJax) {
+                MathJax.typesetPromise();
+            }
+
+            input.focus();
+        }
+
+        function checkAnswer() {
+            if(timeRemaining <= 0 || awaitingWinner) return;
+
+            const input = document.getElementById('code-input').value.toUpperCase();
+            if(input.length !== 3) {
+                playErrorSound();
+                return;
+            }
+
+            const sortedInput = input.split('').sort().join('');
+            const sortedAns = currentAnswers.sort().join('');
+
+            if(sortedInput === sortedAns) {
+                awaitingWinner = true;
+                
+                const inputEl = document.getElementById('code-input');
+                const verifyBtn = document.getElementById('btn-verify');
+                
+                inputEl.disabled = true;
+                verifyBtn.disabled = true;
+                verifyBtn.classList.remove('bg-sky-600', 'hover:bg-sky-500', 'border-sky-400');
+                verifyBtn.classList.add('bg-green-600', 'border-green-400');
+                document.getElementById('text-verify').innerText = i18n[lang].selectWinner;
+                
+                enableFaces();
+            } else {
+                playErrorSound();
+            }
+        }
+        
+        function enableFaces() {
+            const btnBoy = document.getElementById('btn-win-boy');
+            const btnGirl = document.getElementById('btn-win-girl');
+            
+            btnBoy.disabled = false;
+            btnGirl.disabled = false;
+            
+            btnBoy.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnBoy.classList.add('opacity-100', 'cursor-pointer', 'border-blue-400', 'animate-pulse', 'hover:scale-110');
+            document.getElementById('glow-boy').classList.remove('opacity-0');
+            
+            btnGirl.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnGirl.classList.add('opacity-100', 'cursor-pointer', 'border-pink-400', 'animate-pulse', 'hover:scale-110');
+            document.getElementById('glow-girl').classList.remove('opacity-0');
+        }
+
+        function disableFaces() {
+            const btnBoy = document.getElementById('btn-win-boy');
+            const btnGirl = document.getElementById('btn-win-girl');
+            
+            btnBoy.disabled = true;
+            btnGirl.disabled = true;
+            
+            btnBoy.className = "flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-4xl opacity-50 cursor-not-allowed transition-all transform shadow-sm relative overflow-hidden";
+            btnGirl.className = "flex-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-4xl opacity-50 cursor-not-allowed transition-all transform shadow-sm relative overflow-hidden";
+            
+            document.getElementById('glow-boy').classList.add('opacity-0');
+            document.getElementById('glow-girl').classList.add('opacity-0');
+        }
+
+        function resetVerifyButton() {
+            const inputEl = document.getElementById('code-input');
+            const verifyBtn = document.getElementById('btn-verify');
+            
+            inputEl.disabled = false;
+            verifyBtn.disabled = false;
+            verifyBtn.classList.add('bg-sky-600', 'hover:bg-sky-500', 'border-sky-400');
+            verifyBtn.classList.remove('bg-green-600', 'border-green-400');
+            document.getElementById('text-verify').innerText = i18n[lang].verify;
+        }
+
+        function claimWin(winner) {
+            if(!awaitingWinner) return;
+            
+            disableFaces(); 
+            
+            if(winner === 'boy') scoreBoy++;
+            else scoreGirl++;
+
+            updateChecks();
+            
+            setTimeout(() => {
+                currentRound++;
+                if(currentRound > maxRounds) {
+                    showFinalWinner();
+                } else {
+                    awaitingWinner = false;
+                    resetVerifyButton();
+                    updateRoundDisplay();
+                    nextProblem(false);
+                }
+            }, 1000); 
+        }
+
+        function updateChecks() {
+            for(let i=0; i<5; i++) {
+                const boyCheck = document.getElementById(`boy-check-${i}`);
+                if(boyCheck) {
+                    if(i < scoreBoy) {
+                        boyCheck.classList.remove('check-off');
+                        boyCheck.classList.add('check-on');
+                    } else {
+                        boyCheck.classList.add('check-off');
+                        boyCheck.classList.remove('check-on');
+                    }
+                }
+                
+                const girlCheck = document.getElementById(`girl-check-${i}`);
+                if(girlCheck) {
+                    if(i < scoreGirl) {
+                        girlCheck.classList.remove('check-off');
+                        girlCheck.classList.add('check-on');
+                    } else {
+                        girlCheck.classList.add('check-off');
+                        girlCheck.classList.remove('check-on');
+                    }
+                }
+            }
+        }
+
+        function updateRoundDisplay() {
+            const r = Math.min(currentRound, maxRounds);
+            document.getElementById('round-display').innerText = `${i18n[lang].round} ${r} / ${maxRounds}`;
+        }
+        
+        function showFinalWinner() {
+            const modal = document.getElementById('success-modal');
+            let winnerText = "";
+            let iconHtml = "";
+            
+            if(scoreBoy > scoreGirl) {
+                winnerText = lang === 'es' ? "¡El Joven gana!" : "Boy wins!";
+                iconHtml = `<div class="text-5xl">👦🏻</div>`;
+            } else if(scoreGirl > scoreBoy) {
+                winnerText = lang === 'es' ? "¡La Dama gana!" : "Girl wins!";
+                iconHtml = `<div class="text-5xl">👧🏽</div>`;
+            } else {
+                winnerText = lang === 'es' ? "¡Empate!" : "Tie!";
+                iconHtml = `<svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M8 7h8M8 17h8M8 12h8"></path></svg>`;
+            }
+            
+            document.getElementById('modal-icon-container').innerHTML = iconHtml;
+            document.getElementById('lbl-success').innerText = i18n[lang].success;
+            document.getElementById('lbl-success-desc').innerText = `Puntuación final - 👦🏻: ${scoreBoy} | 👧🏽: ${scoreGirl}. ${winnerText}`;
+            
+            modal.classList.remove('hidden');
+            document.getElementById('modal-content').classList.remove('scale-95');
+            document.getElementById('modal-content').classList.add('scale-100');
+        }
+
+        document.getElementById('code-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        
+        window.addEventListener('load', () => {
+             if(window.MathJax) MathJax.typesetPromise();
+        });
+    </script>
+</body>
+</html>
